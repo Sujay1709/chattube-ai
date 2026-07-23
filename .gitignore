@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+.env*.local
+.vercel
+*.log
+.DS_Store
+
+# Safety: never commit the throwaway API-test script (it may hold a raw key)
+ortest.mjs

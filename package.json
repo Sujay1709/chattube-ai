@@ -1,0 +1,26 @@
+{
+  "name": "chattube-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive YouTube RAG chatbot for hiring, built with Next.js and deployable on Vercel.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "openai": "^4.56.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "youtube-transcript": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.4"
+  }
+}
