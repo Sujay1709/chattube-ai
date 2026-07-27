@@ -15,11 +15,27 @@ import { fetchTranscript, fetchMeta } from "@/lib/youtube";
 import { chunkText, type Chunk } from "@/lib/rag";
 import { analyzeTranscript } from "@/lib/analyze";
 import { embed } from "@/lib/llm";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 
+// Ingest is the expensive call (embeds every chunk + one LLM analysis), so keep
+// its per-IP allowance tight, and cap how many chunks a single video can cost.
+const INGEST_LIMIT = 8; // requests
+const INGEST_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
+const MAX_CHUNKS = 150; // bound cost for very long videos
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = clientIp(req);
+    const rl = rateLimit(`ingest:${ip}`, INGEST_LIMIT, INGEST_WINDOW_MS);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: `Too many videos added recently. Try again in ${rl.retryAfterSec}s.` },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const { url } = await req.json();
     if (!url || typeof url !== "string") {
       return NextResponse.json({ error: "Please provide a YouTube URL." }, { status: 400 });
@@ -33,9 +49,13 @@ export async function POST(req: NextRequest) {
     const meta = await fetchMeta(videoId);
     console.log("[ingest] metadata OK —", meta.title);
 
-    const pieces = chunkText(text);
+    let pieces = chunkText(text);
     if (pieces.length === 0) {
       return NextResponse.json({ error: "Transcript was empty after processing." }, { status: 422 });
+    }
+    if (pieces.length > MAX_CHUNKS) {
+      console.log(`[ingest] capping ${pieces.length} chunks to ${MAX_CHUNKS}`);
+      pieces = pieces.slice(0, MAX_CHUNKS);
     }
     console.log(`[ingest] 3/4 embedding ${pieces.length} chunks + analyzing…`);
 

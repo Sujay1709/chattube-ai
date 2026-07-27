@@ -9,8 +9,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { retrieve, type Chunk } from "@/lib/rag";
 import { embed, chat, type ChatMessage } from "@/lib/llm";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
+
+// Chat is cheaper than ingest (one embed + one completion), so allow more.
+const CHAT_LIMIT = 30; // requests
+const CHAT_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
 
 // The system prompt is where the "hiring assistant" persona lives. Editing this
 // changes the bot's behavior without touching any pipeline code.
@@ -26,6 +31,15 @@ Rules:
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = clientIp(req);
+    const rl = rateLimit(`chat:${ip}`, CHAT_LIMIT, CHAT_WINDOW_MS);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: `Too many questions recently. Try again in ${rl.retryAfterSec}s.` },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const { question, chunks, history } = (await req.json()) as {
       question: string;
       chunks: Chunk[];

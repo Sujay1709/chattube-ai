@@ -158,6 +158,16 @@ that list. To go back to OpenAI, just remove `OPENAI_BASE_URL` and use an
 
 ---
 
+## Abuse protection (public deployments)
+
+Because the live site runs on your OpenRouter key, both API routes are rate
+limited per IP (`lib/ratelimit.ts`): ingest allows 8 videos / 10 min, chat
+allows 30 questions / 10 min, and any single video is capped at 150 chunks to
+bound cost. This is an in-memory, best-effort guard — good enough to stop casual
+abuse. On Vercel each serverless instance has its own memory, so for a strict
+global limit, back it with [Upstash Redis](https://upstash.com) +
+`@upstash/ratelimit` (free tier) and swap the store in `lib/ratelimit.ts`.
+
 ## Ideas to extend (good learning next steps)
 
 - **Swap the LLM provider** in `lib/llm.ts` (e.g. Anthropic Claude for chat).
