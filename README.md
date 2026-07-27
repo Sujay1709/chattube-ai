@@ -1,5 +1,7 @@
 # 🎥 ChatTube.ai (Next.js + RAG, deployable on Vercel)
 
+**▶ Live demo: [chattube-ai-self.vercel.app](https://chattube-ai-self.vercel.app/)**
+
 An interactive chatbot that answers questions about any YouTube video using
 **Retrieval-Augmented Generation (RAG)**. Paste a video — a recorded interview,
 a role overview, a company-culture clip, or a candidate's video intro — and ask
@@ -8,6 +10,16 @@ questions. Answers are grounded **only** in that video's transcript.
 This is a learning project for building AI agents. It's a full rewrite of the
 original Streamlit + Embedchain app into a **Next.js** app that deploys to
 **Vercel** with **no external database**.
+
+## Screenshots
+
+**Library — your knowledge base of ingested videos**
+
+![ChatTube.ai library view](docs/library.png)
+
+**Chat — ask questions answered only from the video's transcript**
+
+![ChatTube.ai chat view](docs/chat.png)
 
 ### Signature features
 - **ChatTube-style UI** — a library of videos, per-video chat, and an Add-Video modal.
