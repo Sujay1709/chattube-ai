@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { retrieve, type Chunk } from "@/lib/rag";
 import { embed, chat, type ChatMessage } from "@/lib/llm";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { toUserMessage } from "@/lib/errors";
 
 export const maxDuration = 60;
 
@@ -85,8 +86,8 @@ export async function POST(req: NextRequest) {
       })),
     });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Something went wrong while answering.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[chat] FAILED:", err);
+    const { message, status } = toUserMessage(err);
+    return NextResponse.json({ error: message }, { status });
   }
 }

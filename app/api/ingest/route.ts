@@ -16,6 +16,7 @@ import { chunkText, type Chunk } from "@/lib/rag";
 import { analyzeTranscript } from "@/lib/analyze";
 import { embed } from "@/lib/llm";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { toUserMessage } from "@/lib/errors";
 
 export const maxDuration = 60;
 
@@ -77,9 +78,10 @@ export async function POST(req: NextRequest) {
       chunks,
     });
   } catch (err) {
-    // Log the FULL error server-side so it shows up in the terminal.
+    // Log the FULL error server-side (visible in Vercel logs / terminal)…
     console.error("[ingest] FAILED:", err);
-    const message = err instanceof Error ? err.message : "Something went wrong while ingesting.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // …but return a calm, user-friendly message.
+    const { message, status } = toUserMessage(err);
+    return NextResponse.json({ error: message }, { status });
   }
 }
