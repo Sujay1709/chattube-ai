@@ -136,6 +136,7 @@ vercel --prod
 | `CHAT_MODEL` | ❌ | `gpt-4o-mini` | Chat model (e.g. `openrouter/free`) |
 | `EMBEDDING_MODEL` | ❌ | `text-embedding-3-small` | Embedding model |
 | `APP_URL` | ❌ | `http://localhost:3000` | Optional; shown in OpenRouter dashboard |
+| `SUPADATA_API_KEY` | ⚠️ prod | — | Transcript API key. **Required on Vercel** (YouTube blocks caption scraping from datacenter IPs). Free tier at [supadata.ai](https://supadata.ai). Optional locally. |
 
 ### Free option: OpenRouter
 
