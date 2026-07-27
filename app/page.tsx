@@ -50,6 +50,24 @@ const SUGGESTIONS = [
   "Who is this video for?",
 ];
 
+/**
+ * Read a fetch Response as JSON, but survive non-JSON bodies. Vercel returns a
+ * plain-text "An error occurred…" page when a serverless function times out or
+ * crashes — this turns that into a friendly message instead of a parse error.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function readResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (res.status === 504 || /timeout|timed out/i.test(text)) {
+      return { error: "This video took too long to process (server timed out). Try a shorter video." };
+    }
+    return { error: "The server hit an unexpected error. Please try again in a moment." };
+  }
+}
+
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -74,7 +92,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const data = await res.json();
+      const data = await readResponse(res);
       if (!res.ok) throw new Error(data.error || "Failed to add video.");
 
       const video: Video = {
@@ -115,7 +133,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text, chunks: selected.chunks, history }),
       });
-      const data = await res.json();
+      const data = await readResponse(res);
       if (!res.ok) throw new Error(data.error || "Failed to answer.");
       updateVideo(selected.id, (v) => ({
         ...v,

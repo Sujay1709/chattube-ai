@@ -24,7 +24,7 @@ export const maxDuration = 60;
 // its per-IP allowance tight, and cap how many chunks a single video can cost.
 const INGEST_LIMIT = 8; // requests
 const INGEST_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
-const MAX_CHUNKS = 150; // bound cost for very long videos
+const MAX_CHUNKS = 100; // bound cost, payload size, and latency for long videos
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,10 +60,28 @@ export async function POST(req: NextRequest) {
     }
     console.log(`[ingest] 3/4 embedding ${pieces.length} chunks + analyzing…`);
 
-    const [embeddings, analysis] = await Promise.all([
-      embed(pieces),
-      analyzeTranscript(segments, durationSeconds, meta.title),
+    // Embeddings are required for chat. Analysis (topics/timeline) is a
+    // nice-to-have — if it fails OR takes too long, don't let it break or stall
+    // the whole ingest; fall back to a minimal analysis so chat still works.
+    const analysisFallback = {
+      topics: [] as string[],
+      imageQuery: meta.title || "video",
+      chapters: [{ start: 0, title: "Overview", summary: "" }],
+    };
+    const analysisWithTimeout = Promise.race([
+      analyzeTranscript(segments, durationSeconds, meta.title).catch((e) => {
+        console.warn("[ingest] analysis failed (non-fatal):", e instanceof Error ? e.message : e);
+        return analysisFallback;
+      }),
+      new Promise<typeof analysisFallback>((resolve) =>
+        setTimeout(() => {
+          console.warn("[ingest] analysis timed out (non-fatal), using fallback");
+          resolve(analysisFallback);
+        }, 20000)
+      ),
     ]);
+
+    const [embeddings, analysis] = await Promise.all([embed(pieces), analysisWithTimeout]);
     console.log("[ingest] 4/4 embeddings + analysis OK");
 
     const chunks: Chunk[] = pieces.map((t, i) => ({ id: i, text: t, embedding: embeddings[i] }));
